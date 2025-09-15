@@ -41,3 +41,15 @@ router.get("/:filename", (req, res) => {
 });
 
 export default router;
+
+
+router.get("/", (req, res) => {
+  if (!fs.existsSync(uploadDir)) return res.json([]);
+
+  const files = fs.readdirSync(uploadDir).map((file) => ({
+    name: file,
+    url: `/uploads/videos/${file}`,
+  }));
+
+  res.json(files);
+});
