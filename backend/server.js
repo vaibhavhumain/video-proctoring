@@ -5,7 +5,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import logRoutes from "./routes/logRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import reportRoutes from "./routes/reportRoutes";
+import reportRoutes from "./routes/reportRoutes.js";
 dotenv.config();
 
 const app = express();
