@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-model = YOLO("yolov8n.onnx")
+model = YOLO("yolov8n.pt")
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1)
