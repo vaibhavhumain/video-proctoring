@@ -4,7 +4,18 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// ✅ fix __dirname in ES modules
+function formatDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [
+    h > 0 ? `${h}h` : null,
+    m > 0 ? `${m}m` : null,
+    `${s}s`
+  ].filter(Boolean).join(" ");
+}
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -12,14 +23,11 @@ export const generateCandidateReport = async (req, res) => {
   try {
     const { candidateId } = req.params;
 
-    // Fetch user
     const user = await User.findOne({ candidateId });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Fetch logs
     const logs = await Log.find({ candidateId }).sort({ timestamp: 1 });
 
-    // Metrics
     const focusLost = logs.filter((l) =>
       l.event.toLowerCase().includes("away")
     ).length;
@@ -37,7 +45,6 @@ export const generateCandidateReport = async (req, res) => {
       100 - (focusLost * 5 + suspicious * 10)
     );
 
-    // ✅ Setup PDF
     const doc = new PDFDocument({ margin: 50 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -46,7 +53,6 @@ export const generateCandidateReport = async (req, res) => {
     );
     doc.pipe(res);
 
-    // --- Header ---
     doc
       .font("Helvetica-Bold")
       .fontSize(22)
@@ -58,10 +64,17 @@ export const generateCandidateReport = async (req, res) => {
       .font("Helvetica")
       .fontSize(12)
       .fillColor("gray")
-      .text(`Generated on: ${new Date().toLocaleString()}`, { align: "center" })
+      .text(
+  `Generated on: ${new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })}`,
+  { align: "center" }
+)
+
       .moveDown(1);
 
-    // --- Candidate Info ---
     doc
       .font("Helvetica-Bold")
       .fontSize(16)
@@ -73,7 +86,7 @@ export const generateCandidateReport = async (req, res) => {
     doc.text(`Name: ${user.name}`);
     doc.text(`Candidate ID: ${candidateId}`);
     doc.text(`Email: ${user.email || "N/A"}`);
-    doc.text(`Interview Duration: ${duration} seconds`);
+    doc.text(`Interview Duration: ${formatDuration(duration)}`);
     doc.moveDown(1);
 
     // --- Summary ---
