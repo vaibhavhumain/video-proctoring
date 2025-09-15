@@ -9,7 +9,6 @@ import requests
 
 app = FastAPI()
 
-# ✅ Allow localhost frontend
 origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
@@ -19,14 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Load YOLOv8 ONNX model
 model = YOLO("yolov8n.onnx")
 
-# ✅ Init MediaPipe Face Mesh for eyes
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1)
 
-# Track previous states (so we can detect changes)
 last_state = {
     "person": 0,
     "cell phone": False,
@@ -34,25 +30,22 @@ last_state = {
     "laptop": False,
     "looking": True
 }
-away_start_time = None  # when candidate started looking away
+away_start_time = None  
 
 class FrameData(BaseModel):
     candidateId: str
-    image: str  # base64 image
+    image: str 
 
 
 @app.post("/process-frame")
 async def process_frame(data: FrameData):
     global last_state, away_start_time
 
-    # decode base64 → numpy
     img_data = base64.b64decode(data.image.split(",")[1])
     np_arr = np.frombuffer(img_data, np.uint8)
     frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-    # ---------------------------
-    # ✅ YOLO: detect persons & objects
-    # ---------------------------
+ 
     results = model.predict(frame, conf=0.3)
 
     persons = 0
@@ -68,7 +61,6 @@ async def process_frame(data: FrameData):
             elif label in current_state:
                 current_state[label] = True
 
-    # Candidate presence
     if persons == 0 and last_state["person"] != 0:
         log_event(data.candidateId, "⚠️ No person detected!")
     elif persons == 1 and last_state["person"] != 1:
@@ -77,7 +69,6 @@ async def process_frame(data: FrameData):
         log_event(data.candidateId, f"⚠️ Multiple persons detected! ({persons})")
     last_state["person"] = persons
 
-    # Suspicious objects
     for obj, present in current_state.items():
         if present and not last_state[obj]:
             log_event(data.candidateId, f"⚠️ {obj} detected!")
@@ -85,9 +76,6 @@ async def process_frame(data: FrameData):
             log_event(data.candidateId, f"✅ {obj} removed")
         last_state[obj] = present
 
-    # ---------------------------
-    # ✅ MediaPipe: Eye tracking (gaze detection)
-    # ---------------------------
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     result = face_mesh.process(rgb)
 
@@ -95,8 +83,7 @@ async def process_frame(data: FrameData):
     if result.multi_face_landmarks:
         face_landmarks = result.multi_face_landmarks[0]
 
-        # Get key eye landmarks (iris & eye corners)
-        left_eye = [33, 133]   # left/right corners
+        left_eye = [33, 133]  
         right_eye = [362, 263]
 
         h, w, _ = frame.shape
@@ -105,13 +92,11 @@ async def process_frame(data: FrameData):
         rx1, ry1 = int(face_landmarks.landmark[right_eye[0]].x * w), int(face_landmarks.landmark[right_eye[0]].y * h)
         rx2, ry2 = int(face_landmarks.landmark[right_eye[1]].x * w), int(face_landmarks.landmark[right_eye[1]].y * h)
 
-        # Rough check: eyes should be horizontal
         if abs((lx2 - lx1)) < 15 or abs((rx2 - rx1)) < 15:
             looking_at_screen = False
     else:
         looking_at_screen = False
 
-    # Handle gaze state with timer
     if not looking_at_screen:
         if away_start_time is None:
             away_start_time = time.time()

@@ -15,10 +15,11 @@ export const uploadVideo = (formData) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+
 export const processFrame = (candidateId, image) =>
   axios.post(
-    import.meta.env.VITE_PROCESS_URL || "http://127.0.0.1:8000/process-frame",
+    import.meta.env.VITE_PROCESS_URL || "http://127.0.0.1:8080/process-frame",
     { candidateId, image }
   );
-
+ 
 export default API;
