@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import logRoutes from "./routes/logRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import videoRoutes from "./routes/videoRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(morgan("dev"));
 app.use("/api/logs", logRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reports",reportRoutes);
+app.use("/api/videos",videoRoutes);  
 app.get("/", (req, res) => res.send("API is running..."));
 
 mongoose
